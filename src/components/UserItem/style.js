@@ -3,8 +3,6 @@ import styled from "styled-components";
 export const UserList = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
-
 `;
 
 export const List = styled.div`
@@ -12,7 +10,7 @@ export const List = styled.div`
   flex-direction: column;
   gap: 35px;
   width: 500px;
-  height: calc(100vh - 340px);
+  height: calc(100vh - 270px);
   margin-block-start: 30px;
   overflow-y: auto;
 `;
@@ -51,15 +49,8 @@ export const IconButtonWrapper = styled.div`
 
 export const Filters = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  width: 100%;
-  max-width: 1200px;
   justify-content: center;
   & > * {
     margin-inline-end: 8px;
   }
-`;
-
-export const SelectContainer = styled.div`
-  width: 500px;
 `;

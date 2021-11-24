@@ -1,13 +1,40 @@
-import React, { useEffect, useState } from "react";
-import Text from "components/Text";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import Spinner from "components/Spinner";
 import CheckBox from "components/CheckBox";
-import IconButton from "@material-ui/core/IconButton";
-import FavoriteIcon from "@material-ui/icons/Favorite";
 import * as S from "./style";
+import UserItem from "components/UserItem/UserItem";
+import MultipleSelectCheckmarks from "components/Select/MultipleSelectCheckmarks";
+import { updateFavorites, updateNationality, updatePageNumber } from "redux/actionTypes";
 
 const UserList = ({ users, isLoading }) => {
   const [hoveredUserId, setHoveredUserId] = useState();
+  const observer = useRef();
+  const { nationality, favorites, countries } = useSelector((state) => state);
+  const dispatch = useDispatch();
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
+  useEffect(() => {
+    setFilteredUsers(
+      users.filter((user) =>
+        nationality.length > 0 ? nationality.includes(user.nat) : true
+      )
+    );
+  }, [users, nationality]);
+
+  useEffect(() => {
+    filteredUsers.length === 0 && dispatch(updatePageNumber());
+  }, [filteredUsers]);
+
+  const lastUserElementRef = useCallback((node) => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        dispatch(updatePageNumber());
+      }
+    },{threshold: .9});
+    if (node) observer.current.observe(node);
+  }, []);
 
   const handleMouseEnter = (index) => {
     setHoveredUserId(index);
@@ -17,41 +44,55 @@ const UserList = ({ users, isLoading }) => {
     setHoveredUserId();
   };
 
+  const handleValueChange = (value, isChecked) => {
+    dispatch(updateNationality(
+      isChecked
+      ? [...nationality, value]
+      : nationality.filter((country) => country !== value)
+    ));
+  };
+
+  const setFavorite = (user) => {
+    dispatch(updateFavorites(
+      favorites.emails.includes(user.email)
+      ? favorites.favorites.filter((favorite) => favorite.email !== user.email)
+      : [...favorites.favorites, user]
+    ));
+  };
+
   return (
     <S.UserList>
       <S.Filters>
-        <CheckBox value="BR" label="Brazil" />
-        <CheckBox value="AU" label="Australia" />
-        <CheckBox value="CA" label="Canada" />
-        <CheckBox value="DE" label="Germany" />
+        {countries.map(
+          (country) =>
+            country.display && (
+              <CheckBox
+                key={country.iso2}
+                value={country.iso2}
+                label={country.name}
+                onChange={handleValueChange}
+              />
+            )
+        )}
       </S.Filters>
+      <S.SelectContainer>
+        <MultipleSelectCheckmarks/>
+      </S.SelectContainer>
       <S.List>
-        {users.map((user, index) => {
+        {filteredUsers.map((user, index, filteredUsers) => {
           return (
-            <S.User
+            <UserItem
+              lastUserElementRef={filteredUsers.length === index + 1 ? lastUserElementRef : null}
               key={index}
-              onMouseEnter={() => handleMouseEnter(index)}
-              onMouseLeave={handleMouseLeave}
-            >
-              <S.UserPicture src={user?.picture.large} alt="" />
-              <S.UserInfo>
-                <Text size="22px" bold>
-                  {user?.name.title} {user?.name.first} {user?.name.last}
-                </Text>
-                <Text size="14px">{user?.email}</Text>
-                <Text size="14px">
-                  {user?.location.street.number} {user?.location.street.name}
-                </Text>
-                <Text size="14px">
-                  {user?.location.city} {user?.location.country}
-                </Text>
-              </S.UserInfo>
-              <S.IconButtonWrapper isVisible={index === hoveredUserId}>
-                <IconButton>
-                  <FavoriteIcon color="error" />
-                </IconButton>
-              </S.IconButtonWrapper>
-            </S.User>
+              index={index}
+              user={user}
+              handleMouseEnter={handleMouseEnter}
+              handleMouseLeave={handleMouseLeave}
+              hoveredUserId={hoveredUserId}
+              favorites={favorites.favorites}
+              favoritesEmails={favorites.emails}
+              setFavorite={() => setFavorite(user)}
+            ></UserItem>
           );
         })}
         {isLoading && (
